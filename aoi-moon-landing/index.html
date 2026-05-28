@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AOI 月面ちゃくりく</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --black:#04060e;
+  --deep:#080d1a;
+  --panel:#0d1525;
+  --border:#1e3a5f;
+  --dim:#243850;
+  --green:#39ff6a;
+  --green2:#1a8c3a;
+  --amber:#ffb347;
+  --amber2:#c97800;
+  --red:#ff3b3b;
+  --blue:#4fc3f7;
+  --white:#e8f4fd;
+  --gray:#6a8ca8;
+}
+
+html,body{
+  width:100%;height:100%;
+  background:var(--black);
+  color:var(--white);
+  font-family:'Share Tech Mono',monospace;
+  overflow:hidden;
+  touch-action:none;
+}
+
+/* ===== STARFIELD ===== */
+#starfield{
+  position:fixed;inset:0;z-index:0;
+  pointer-events:none;
+}
+
+/* ===== LAYOUT ===== */
+#ui{
+  position:fixed;inset:0;z-index:10;
+  display:flex;flex-direction:column;
+  pointer-events:none;
+}
+
+/* top HUD */
+#hud-top{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:8px 10px 0;
+  gap:8px;
+  pointer-events:none;
+}
+.hud-panel{
+  background:rgba(13,21,37,.85);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:6px 10px;
+  min-width:110px;
+}
+.hud-label{
+  font-size:.6rem;letter-spacing:.15em;
+  color:var(--gray);text-transform:uppercase;
+  margin-bottom:2px;
+}
+.hud-value{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(.75rem,2.5vw,1rem);
+  font-weight:700;
+  color:var(--green);
+  letter-spacing:.05em;
+}
+.hud-value.warn{color:var(--amber);}
+.hud-value.danger{color:var(--red);animation:blink .4s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* center stage label */
+#stage-label{
+  text-align:center;
+  font-family:'Orbitron',monospace;
+  font-size:.65rem;letter-spacing:.2em;
+  color:var(--dim);
+  padding:2px 0;
+}
+
+/* canvas */
+#gameCanvas{
+  position:fixed;inset:0;z-index:1;
+  display:block;
+}
+
+/* bottom controls */
+#controls{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  z-index:10;
+  display:flex;
+  height:100px;
+  pointer-events:auto;
+}
+.thruster-zone{
+  flex:1;
+  display:flex;align-items:center;justify-content:center;
+  border-top:1px solid var(--border);
+  background:rgba(13,21,37,.6);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  transition:background .1s;
+}
+.thruster-zone.active{background:rgba(30,58,95,.7);}
+.thruster-zone .btn-inner{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.thruster-label{
+  font-size:.55rem;letter-spacing:.15em;color:var(--gray);
+}
+.thruster-icon{
+  font-size:1.8rem;
+  filter:drop-shadow(0 0 8px rgba(79,195,247,.5));
+  transition:transform .1s,filter .1s;
+}
+.thruster-zone.active .thruster-icon{
+  transform:scale(1.2);
+  filter:drop-shadow(0 0 16px rgba(79,195,247,.9));
+}
+.divider{
+  width:1px;background:var(--border);
+  align-self:stretch;
+}
+
+/* ===== OVERLAY ===== */
+#overlay{
+  position:fixed;inset:0;z-index:50;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:rgba(4,6,14,.92);
+  backdrop-filter:blur(4px);
+  gap:12px;
+  padding:20px;
+}
+#overlay.hidden{display:none;}
+
+.ov-badge{
+  font-family:'Orbitron',monospace;
+  font-size:.6rem;letter-spacing:.25em;
+  color:var(--gray);
+  border:1px solid var(--dim);
+  padding:.3em 1.2em;
+  border-radius:2px;
+}
+#ov-icon{font-size:clamp(2rem,8vw,3.5rem);line-height:1;}
+#ov-title{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(1.2rem,5vw,2rem);
+  font-weight:900;
+  color:var(--white);
+  letter-spacing:.08em;
+  text-align:center;
+}
+#ov-sub{
+  font-size:clamp(.7rem,2vw,.9rem);
+  color:var(--gray);
+  text-align:center;
+  line-height:1.7;
+  max-width:320px;
+}
+.ov-stats{
+  display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
+}
+.ov-stat{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:8px 16px;
+  text-align:center;
+  min-width:90px;
+}
+.ov-stat-label{font-size:.55rem;letter-spacing:.12em;color:var(--gray);}
+.ov-stat-val{
+  font-family:'Orbitron',monospace;
+  font-size:1.1rem;font-weight:700;
+  color:var(--green);
+  margin-top:2px;
+}
+
+#ov-btn{
+  font-family:'Orbitron',monospace;
+  font-size:.85rem;font-weight:700;
+  letter-spacing:.15em;
+  padding:.75em 2.5em;
+  border:1px solid var(--blue);
+  background:rgba(79,195,247,.12);
+  color:var(--blue);
+  cursor:pointer;
+  border-radius:3px;
+  transition:background .15s,box-shadow .15s;
+  margin-top:4px;
+}
+#ov-btn:hover{
+  background:rgba(79,195,247,.25);
+  box-shadow:0 0 20px rgba(79,195,247,.3);
+}
+
+/* wind indicator */
+#wind-bar{
+  position:fixed;top:50%;right:8px;
+  transform:translateY(-50%);
+  z-index:10;
+  display:flex;flex-direction:column;
+  align-items:center;gap:4px;
+  pointer-events:none;
+}
+.wind-label-v{font-size:.5rem;letter-spacing:.1em;color:var(--gray);writing-mode:horizontal-tb;}
+.wind-track{
+  width:8px;height:120px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  position:relative;overflow:hidden;
+}
+.wind-fill{
+  position:absolute;bottom:50%;left:0;right:0;
+  background:var(--amber);
+  transition:height .2s,top .2s;
+}
+.wind-center{
+  position:absolute;top:50%;left:0;right:0;
+  height:1px;background:var(--dim);
+}
+
+/* altitude bar */
+#alt-bar{
+  position:fixed;top:50%;left:8px;
+  transform:translateY(-50%);
+  z-index:10;
+  display:flex;flex-direction:column;
+  align-items:center;gap:4px;
+  pointer-events:none;
+}
+.alt-track{
+  width:8px;height:120px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:4px;
+  position:relative;overflow:hidden;
+}
+.alt-fill{
+  position:absolute;bottom:0;left:0;right:0;
+  background:var(--green);
+  transition:height .1s;
+}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- WIND -->
+<div id="wind-bar">
+  <span class="wind-label-v">WIND</span>
+  <div class="wind-track">
+    <div class="wind-center"></div>
+    <div class="wind-fill" id="windFill" style="height:0;bottom:50%"></div>
+  </div>
+</div>
+
+<!-- ALTITUDE -->
+<div id="alt-bar">
+  <span class="wind-label-v">ALT</span>
+  <div class="alt-track">
+    <div class="alt-fill" id="altFill" style="height:100%"></div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="ui">
+  <div id="hud-top">
+    <div class="hud-panel">
+      <div class="hud-label">▼ DESCENT</div>
+      <div class="hud-value" id="hudVy">0.0 m/s</div>
+    </div>
+    <div style="text-align:center">
+      <div id="stage-label">STAGE 1 — LUNAR APPROACH</div>
+      <div class="hud-panel" style="margin-top:4px;min-width:130px">
+        <div class="hud-label">⛽ FUEL</div>
+        <div class="hud-value" id="hudFuel">100%</div>
+      </div>
+    </div>
+    <div class="hud-panel">
+      <div class="hud-label">↔ DRIFT</div>
+      <div class="hud-value" id="hudVx">0.0 m/s</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls">
+  <div class="thruster-zone" id="btnLeft">
+    <div class="btn-inner">
+      <div class="thruster-icon">◀🔥</div>
+      <div class="thruster-label">LEFT</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="thruster-zone" id="btnCenter" style="flex:1.2;border-left:1px solid var(--border);border-right:1px solid var(--border);">
+    <div class="btn-inner">
+      <div class="thruster-icon" style="font-size:2.2rem;">🔥<br><span style="font-size:.5em;letter-spacing:.1em;color:var(--gray);">▼</span></div>
+      <div class="thruster-label">MAIN ENGINE</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="thruster-zone" id="btnRight">
+    <div class="btn-inner">
+      <div class="thruster-icon">🔥▶</div>
+      <div class="thruster-label">RIGHT</div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay">
+  <div class="ov-badge">MISSION CONTROL</div>
+  <div id="ov-icon">🚀</div>
+  <div id="ov-title">AOI 月面ちゃくりく</div>
+  <div id="ov-sub">
+    左右のスラスターを操作して<br>着陸パッドにぴったり着地しよう！<br><br>
+    ◀ 左ボタン → 右方向に移動<br>
+    🔥 真ん中ボタン → 落下を減速！<br>
+    右ボタン ▶ → 左方向に移動<br><br>
+    長押しで推力アップ 🚀
+  </div>
+  <div class="ov-stats" id="ovStats" style="display:none"></div>
+  <button id="ov-btn">▶ LAUNCH MISSION</button>
+</div>
+
+<script>
+// ===== CANVAS =====
+const cv = document.getElementById('gameCanvas');
+const cx = cv.getContext('2d');
+
+function resize(){
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const W = ()=>cv.width, H = ()=>cv.height;
+const CTRL_H = 100;
+
+// ===== STAGE CONFIG =====
+const STAGES = [
+  {name:'LUNAR APPROACH',   gravity:.008, wind:.0001, fuel:100, padW:90},
+  {name:'MARE TRANQUILLI',  gravity:.010, wind:.0003, fuel:90,  padW:75},
+  {name:'OCEANUS PROCELLARUM',gravity:.012,wind:.0006,fuel:80,  padW:62},
+  {name:'CRATER APPROACH',  gravity:.014, wind:.0010, fuel:70,  padW:50},
+  {name:'TYCHO CRATER',     gravity:.016, wind:.0016, fuel:60,  padW:40},
+];
+
+// ===== STATE =====
+let stage=0, score=0, running=false, animId=null;
+let ship={}, pad={}, stars=[], terrain=[], particles=[];
+let wind={val:0, target:0, timer:0};
+let leftHeld=false, rightHeld=false, centerHeld=false;
+let leftPower=0, rightPower=0, centerPower=0;
+
+// ===== STARS =====
+function initStars(){
+  stars=[];
+  for(let i=0;i<200;i++){
+    stars.push({
+      x:Math.random()*2000, y:Math.random()*800,
+      r:Math.random()*1.2+.3,
+      twinkle:Math.random()*Math.PI*2,
+      speed:Math.random()*.02+.005,
+    });
+  }
+}
+
+// ===== TERRAIN =====
+function initTerrain(padX){
+  terrain=[];
+  const cfg = STAGES[stage];
+  const groundY = H()-CTRL_H-55;
+  const points = 20;
+  const segW = W()/(points-1);
+
+  // find which segment pad sits in
+  const padSeg = Math.floor(padX/segW);
+
+  for(let i=0;i<points;i++){
+    let y;
+    // flat zone around pad
+    if(i>=padSeg-1 && i<=padSeg+2){
+      y = groundY;
+    } else {
+      const rough = (stage+1)*8;
+      y = groundY - 10 - Math.random()*rough - Math.abs(i-points/2)*2;
+    }
+    terrain.push({x:i*segW, y});
+  }
+  // ensure edges are grounded
+  terrain[0].y = groundY+10;
+  terrain[points-1].y = groundY+10;
+}
+
+// ===== SHIP =====
+function initShip(){
+  ship = {
+    x: W()/2 + (Math.random()-.5)*W()*.4,
+    y: 60,
+    vx: (Math.random()-.5)*.4,
+    vy: .2,
+    fuel: STAGES[stage].fuel,
+    crashed: false,
+    landed: false,
+    w: 36, h: 42,
+    flameL: 0, flameR: 0,
+    flameMain: 0,
+  };
+}
+
+// ===== PAD =====
+function initPad(){
+  const cfg = STAGES[stage];
+  const groundY = H()-CTRL_H-55;
+  const margin = cfg.padW*2;
+  pad = {
+    x: margin + Math.random()*(W()-margin*2),
+    y: groundY,
+    w: cfg.padW,
+  };
+}
+
+// ===== PARTICLES =====
+function spawnExplosion(x,y){
+  for(let i=0;i<40;i++){
+    const a=Math.random()*Math.PI*2;
+    const spd=1+Math.random()*5;
+    particles.push({
+      x,y,
+      dx:Math.cos(a)*spd, dy:Math.sin(a)*spd-2,
+      life:1, maxLife:1,
+      r:2+Math.random()*4,
+      color:`hsl(${20+Math.random()*40},100%,${50+Math.random()*30}%)`,
+      type:'debris',
+    });
+  }
+}
+
+function spawnLandingDust(x,y){
+  for(let i=0;i<20;i++){
+    const a=Math.PI+Math.random()*Math.PI;
+    const spd=.5+Math.random()*2;
+    particles.push({
+      x,y,dx:Math.cos(a)*spd,dy:Math.sin(a)*spd*.5-1,
+      life:1,maxLife:1,r:3+Math.random()*5,
+      color:'rgba(180,180,160,',type:'dust',
+    });
+  }
+}
+
+function spawnThrusterFlame(x,y,dir){
+  for(let i=0;i<3;i++){
+    particles.push({
+      x:x+(Math.random()-.5)*4,
+      y:y+(Math.random()-.5)*4,
+      dx:dir*(1+Math.random()*2),
+      dy:(Math.random()-.5)*.5,
+      life:1,maxLife:1,
+      r:2+Math.random()*3,
+      color:`hsl(${180+Math.random()*40},100%,${60+Math.random()*30}%)`,
+      type:'thruster',
+    });
+  }
+}
+
+// ===== DRAW LANDER =====
+function drawLander(x,y,fl,fr,fm){
+  cx.save();
+  cx.translate(x,y);
+
+  // descent engine flame (main, bottom center)
+  if(fm>0){
+    const flameH=12+fm*20;
+    const grad=cx.createLinearGradient(0,18,0,18+flameH);
+    grad.addColorStop(0,'rgba(79,195,247,.9)');
+    grad.addColorStop(.4,'rgba(255,180,50,.8)');
+    grad.addColorStop(1,'rgba(255,80,0,0)');
+    cx.fillStyle=grad;
+    cx.beginPath();
+    cx.moveTo(-6,18);cx.lineTo(6,18);
+    cx.lineTo(2,18+flameH);cx.lineTo(-2,18+flameH);
+    cx.closePath();cx.fill();
+  }
+
+  // left thruster flame
+  if(fl>0){
+    const fw=8+fl*14;
+    const grad=cx.createLinearGradient(-18,0,-18-fw,0);
+    grad.addColorStop(0,'rgba(79,195,247,.9)');
+    grad.addColorStop(.5,'rgba(255,180,50,.7)');
+    grad.addColorStop(1,'rgba(255,80,0,0)');
+    cx.fillStyle=grad;
+    cx.beginPath();
+    cx.moveTo(-18,-4);cx.lineTo(-18,4);
+    cx.lineTo(-18-fw,1);cx.lineTo(-18-fw,-1);
+    cx.closePath();cx.fill();
+  }
+
+  // right thruster flame
+  if(fr>0){
+    const fw=8+fr*14;
+    const grad=cx.createLinearGradient(18,0,18+fw,0);
+    grad.addColorStop(0,'rgba(79,195,247,.9)');
+    grad.addColorStop(.5,'rgba(255,180,50,.7)');
+    grad.addColorStop(1,'rgba(255,80,0,0)');
+    cx.fillStyle=grad;
+    cx.beginPath();
+    cx.moveTo(18,-4);cx.lineTo(18,4);
+    cx.lineTo(18+fw,1);cx.lineTo(18+fw,-1);
+    cx.closePath();cx.fill();
+  }
+
+  // === APOLLO LANDER BODY ===
+  // descent stage (lower, gold/black)
+  cx.fillStyle='#c8a020';
+  cx.fillRect(-16,4,32,14);
+  // gold foil pattern
+  cx.strokeStyle='#8a6800';
+  cx.lineWidth=1;
+  for(let i=0;i<5;i++){
+    cx.beginPath();
+    cx.moveTo(-16+i*8,4);cx.lineTo(-16+i*8,18);
+    cx.stroke();
+  }
+  // dark base
+  cx.fillStyle='#4a3800';
+  cx.fillRect(-14,14,28,4);
+
+  // ascent stage (upper, silver/gray)
+  cx.fillStyle='#b0bec5';
+  cx.fillRect(-12,-14,24,18);
+  // hatch detail
+  cx.fillStyle='#78909c';
+  cx.fillRect(-5,-12,10,8);
+  // window
+  cx.beginPath();
+  cx.arc(-4,-6,4,0,Math.PI*2);
+  cx.fillStyle='#1a237e';cx.fill();
+  cx.beginPath();
+  cx.arc(-4,-6,3,0,Math.PI*2);
+  cx.fillStyle='#3949ab';cx.fill();
+  // shine on window
+  cx.beginPath();
+  cx.arc(-5.5,-7.5,1.2,0,Math.PI*2);
+  cx.fillStyle='rgba(255,255,255,.6)';cx.fill();
+
+  // antennas
+  cx.strokeStyle='#90a4ae';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(0,-14);cx.lineTo(-8,-22);cx.stroke();
+  cx.beginPath();cx.moveTo(0,-14);cx.lineTo(8,-22);cx.stroke();
+  cx.beginPath();cx.moveTo(0,-14);cx.lineTo(0,-24);cx.stroke();
+  // antenna tips
+  cx.fillStyle='#ef9a9a';
+  [[-8,-22],[8,-22],[0,-24]].forEach(([ax,ay])=>{
+    cx.beginPath();cx.arc(ax,ay,1.5,0,Math.PI*2);cx.fill();
+  });
+
+  // RCS thrusters (left/right bumps)
+  cx.fillStyle='#78909c';
+  cx.fillRect(-18,-8,4,6);
+  cx.fillRect(14,-8,4,6);
+
+  // landing legs
+  cx.strokeStyle='#8d6e00';cx.lineWidth=2;
+  // left leg
+  cx.beginPath();cx.moveTo(-14,18);cx.lineTo(-26,32);cx.stroke();
+  cx.beginPath();cx.moveTo(-10,12);cx.lineTo(-26,32);cx.stroke();
+  // right leg
+  cx.beginPath();cx.moveTo(14,18);cx.lineTo(26,32);cx.stroke();
+  cx.beginPath();cx.moveTo(10,12);cx.lineTo(26,32);cx.stroke();
+  // foot pads
+  cx.fillStyle='#5d4037';
+  cx.fillRect(-30,30,8,4);
+  cx.fillRect(22,30,8,4);
+  // center foot
+  cx.beginPath();cx.moveTo(-6,18);cx.lineTo(6,18);cx.lineTo(4,34);cx.lineTo(-4,34);cx.closePath();
+  cx.strokeStyle='#8d6e00';cx.stroke();
+  cx.fillStyle='#5d4037';
+  cx.fillRect(-5,32,10,4);
+
+  cx.restore();
+}
+
+// ===== DRAW TERRAIN =====
+function drawTerrain(){
+  if(terrain.length<2)return;
+  // moon surface fill
+  cx.beginPath();
+  cx.moveTo(terrain[0].x, terrain[0].y);
+  for(let i=1;i<terrain.length;i++){
+    cx.lineTo(terrain[i].x,terrain[i].y);
+  }
+  cx.lineTo(W(),H());cx.lineTo(0,H());cx.closePath();
+  const grd=cx.createLinearGradient(0,H()-CTRL_H-80,0,H()-CTRL_H);
+  grd.addColorStop(0,'#2a2a35');
+  grd.addColorStop(1,'#1a1a22');
+  cx.fillStyle=grd;cx.fill();
+  // surface line
+  cx.strokeStyle='#4a4a5a';cx.lineWidth=1.5;
+  cx.beginPath();
+  cx.moveTo(terrain[0].x,terrain[0].y);
+  for(let i=1;i<terrain.length;i++) cx.lineTo(terrain[i].x,terrain[i].y);
+  cx.stroke();
+  // craters
+  cx.fillStyle='rgba(0,0,0,.25)';
+  [[W()*.2,H()-CTRL_H-70,18],[W()*.7,H()-CTRL_H-65,12],[W()*.5,H()-CTRL_H-90,8]].forEach(([cx2,cy2,r])=>{
+    cx.beginPath();cx.ellipse(cx2,cy2,r,r*.4,0,0,Math.PI*2);cx.fill();
+  });
+}
+
+// ===== DRAW PAD =====
+function drawPad(){
+  const py=pad.y, px=pad.x, pw=pad.w;
+  // glow
+  const grd=cx.createRadialGradient(px,py,0,px,py,pw);
+  grd.addColorStop(0,'rgba(57,255,106,.15)');
+  grd.addColorStop(1,'rgba(57,255,106,0)');
+  cx.fillStyle=grd;
+  cx.fillRect(px-pw,py-20,pw*2,40);
+  // pad surface
+  cx.fillStyle='#1a3a2a';
+  cx.fillRect(px-pw/2,py-3,pw,6);
+  // cross markers
+  cx.strokeStyle='#39ff6a';cx.lineWidth=1.5;
+  cx.setLineDash([4,4]);
+  cx.beginPath();cx.moveTo(px-pw/2,py);cx.lineTo(px+pw/2,py);cx.stroke();
+  cx.setLineDash([]);
+  // center X
+  cx.strokeStyle='#39ff6a';cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(px-6,py-6);cx.lineTo(px+6,py+6);cx.stroke();
+  cx.beginPath();cx.moveTo(px+6,py-6);cx.lineTo(px-6,py+6);cx.stroke();
+  // corner lights (blinking)
+  const blink=Math.sin(Date.now()*.005)>.0;
+  if(blink){
+    cx.fillStyle='#39ff6a';
+    [[-pw/2,0],[pw/2,0]].forEach(([dx,dy])=>{
+      cx.beginPath();cx.arc(px+dx,py+dy,3,0,Math.PI*2);cx.fill();
+    });
+  }
+  // label
+  cx.fillStyle='rgba(57,255,106,.7)';
+  cx.font='9px Share Tech Mono';
+  cx.textAlign='center';
+  cx.fillText('LANDING PAD',px,py-8);
+}
+
+// ===== DRAW STARS =====
+function drawStars(){
+  stars.forEach(s=>{
+    s.twinkle+=s.speed;
+    const a=.4+Math.sin(s.twinkle)*.35;
+    cx.beginPath();
+    cx.arc(s.x%W(),s.y%(H()-CTRL_H*.7),s.r,0,Math.PI*2);
+    cx.fillStyle=`rgba(220,235,255,${a})`;
+    cx.fill();
+  });
+}
+
+// ===== DRAW PARTICLES =====
+function drawParticles(){
+  particles.forEach(p=>{
+    cx.save();
+    cx.globalAlpha=p.life;
+    if(p.type==='dust'){
+      cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      cx.fillStyle=p.color+p.life+')';cx.fill();
+    } else {
+      cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      cx.fillStyle=p.color;cx.fill();
+    }
+    cx.restore();
+  });
+}
+
+// ===== DRAW TARGETING LINE =====
+function drawTargeting(){
+  if(ship.landed||ship.crashed)return;
+  const dx=pad.x-ship.x;
+  const dist=Math.abs(dx);
+  const alpha=Math.min(.4,dist/W()*.6);
+  cx.save();
+  cx.globalAlpha=alpha*.5;
+  cx.strokeStyle=dist<pad.w/2?'#39ff6a':'#ffb347';
+  cx.setLineDash([4,8]);
+  cx.lineWidth=1;
+  cx.beginPath();
+  cx.moveTo(ship.x,ship.y+40);
+  cx.lineTo(pad.x,pad.y);
+  cx.stroke();
+  cx.setLineDash([]);
+  cx.restore();
+  // offset display
+  const sign=dx>0?'►':dx<0?'◄':'●';
+  cx.fillStyle=dist<pad.w/2?'#39ff6a':'#ffb347';
+  cx.font='10px Share Tech Mono';
+  cx.textAlign='center';
+  cx.globalAlpha=.7;
+  cx.fillText(`${sign} ${Math.round(dist)}m`,ship.x,ship.y-45);
+  cx.globalAlpha=1;
+}
+
+// ===== EARTH IN SKY =====
+function drawEarth(){
+  const ex=W()*.82,ey=H()*.12,er=W()*.065;
+  const grd=cx.createRadialGradient(ex-er*.3,ey-er*.3,er*.1,ex,ey,er);
+  grd.addColorStop(0,'#1565c0');
+  grd.addColorStop(.4,'#0d47a1');
+  grd.addColorStop(.7,'#1b5e20');
+  grd.addColorStop(1,'#0a2a0a');
+  cx.beginPath();cx.arc(ex,ey,er,0,Math.PI*2);
+  cx.fillStyle=grd;cx.fill();
+  // cloud swirls
+  cx.fillStyle='rgba(255,255,255,.25)';
+  cx.beginPath();cx.ellipse(ex-er*.2,ey-er*.1,er*.4,er*.15,-0.3,0,Math.PI*2);cx.fill();
+  cx.beginPath();cx.ellipse(ex+er*.15,ey+er*.2,er*.35,er*.12,0.4,0,Math.PI*2);cx.fill();
+  // atmosphere glow
+  const atm=cx.createRadialGradient(ex,ey,er*.9,ex,ey,er*1.15);
+  atm.addColorStop(0,'rgba(79,195,247,0)');
+  atm.addColorStop(1,'rgba(79,195,247,.12)');
+  cx.beginPath();cx.arc(ex,ey,er*1.15,0,Math.PI*2);
+  cx.fillStyle=atm;cx.fill();
+}
+
+// ===== TERRAIN COLLISION =====
+function getGroundY(x){
+  if(terrain.length<2)return H()-CTRL_H-55;
+  for(let i=0;i<terrain.length-1;i++){
+    if(x>=terrain[i].x&&x<=terrain[i+1].x){
+      const t=(x-terrain[i].x)/(terrain[i+1].x-terrain[i].x);
+      return terrain[i].y*(1-t)+terrain[i+1].y*t;
+    }
+  }
+  return H()-CTRL_H-55;
+}
+
+// ===== UPDATE =====
+function update(){
+  if(!running)return;
+  const cfg=STAGES[stage];
+
+  // wind update
+  wind.timer--;
+  if(wind.timer<=0){
+    wind.target=(Math.random()-.5)*cfg.wind*2;
+    wind.timer=120+Math.floor(Math.random()*180);
+  }
+  wind.val+=(wind.target-wind.val)*.01;
+
+  // thruster power ramp
+  if(leftHeld)  leftPower  = Math.min(1, leftPower+.04);
+  else          leftPower  = Math.max(0, leftPower-.08);
+  if(rightHeld) rightPower = Math.min(1, rightPower+.04);
+  else          rightPower = Math.max(0, rightPower-.08);
+
+  const thrust=.04;
+  let fueling=false;
+
+  if(leftHeld && ship.fuel>0){
+    ship.vx += leftPower*thrust;
+    ship.fuel=Math.max(0,ship.fuel-leftPower*.12);
+    fueling=true;
+    spawnThrusterFlame(ship.x-18,ship.y,-1);
+  }
+  if(rightHeld && ship.fuel>0){
+    ship.vx -= rightPower*thrust;
+    ship.fuel=Math.max(0,ship.fuel-rightPower*.12);
+    fueling=true;
+    spawnThrusterFlame(ship.x+18,ship.y,1);
+  }
+
+  // CENTER thruster - player controlled (up arrow or center button)
+  if(centerHeld && ship.fuel>0){
+    centerPower = Math.min(1, centerPower+.05);
+    ship.vy -= centerPower*.09;
+    ship.fuel=Math.max(0,ship.fuel-centerPower*.10);
+    ship.flameMain=centerPower;
+    // spawn main engine exhaust
+    for(let i=0;i<2;i++){
+      particles.push({
+        x:ship.x+(Math.random()-.5)*8,
+        y:ship.y+36,
+        dx:(Math.random()-.5)*.8,
+        dy:1.5+Math.random()*2,
+        life:1,maxLife:1,
+        r:3+Math.random()*4,
+        color:`hsl(${180+Math.random()*60},100%,${55+Math.random()*30}%)`,
+        type:'thruster',
+      });
+    }
+  } else {
+    centerPower = Math.max(0, centerPower-.06);
+    ship.flameMain=centerPower*.3;
+  }
+
+  // gravity + wind
+  ship.vy += cfg.gravity;
+  ship.vx += wind.val;
+
+  // friction
+  ship.vx *= .995;
+
+  // move
+  ship.x += ship.vx;
+  ship.y += ship.vy;
+
+  // flame visuals
+  ship.flameL = leftPower;
+  ship.flameR = rightPower;
+
+  // wall wrap
+  if(ship.x < -30) ship.x = W()+30;
+  if(ship.x > W()+30) ship.x = -30;
+
+  // ground collision
+  const groundY = getGroundY(ship.x);
+  const shipBottom = ship.y + 36; // foot level
+
+  if(shipBottom >= groundY){
+    ship.y = groundY - 36;
+    const onPad = Math.abs(ship.x - pad.x) < pad.w/2;
+    const speedOK = Math.abs(ship.vy) < 1.4 && Math.abs(ship.vx) < 0.8;
+
+    if(onPad && speedOK){
+      ship.landed=true; running=false;
+      spawnLandingDust(ship.x,groundY);
+      setTimeout(()=>showResult(true),800);
+    } else {
+      ship.crashed=true; running=false;
+      spawnExplosion(ship.x,groundY);
+      setTimeout(()=>showResult(false),1200);
+    }
+  }
+
+  // particles
+  particles.forEach(p=>{
+    p.x+=p.dx; p.y+=p.dy;
+    p.dy+=.06; p.life-=.025;
+    if(p.type==='thruster'){p.life-=.04;}
+  });
+  particles=particles.filter(p=>p.life>0);
+
+  // HUD
+  updateHUD();
+  updateWindBar();
+  updateAltBar(groundY);
+}
+
+function updateHUD(){
+  const vy=ship.vy, vx=ship.vx;
+  const vyEl=document.getElementById('hudVy');
+  const vxEl=document.getElementById('hudVx');
+  const fuelEl=document.getElementById('hudFuel');
+
+  vyEl.textContent=(vy*10).toFixed(1)+' m/s';
+  vyEl.className='hud-value'+(vy>.6?' danger':vy>.35?' warn':'');
+
+  vxEl.textContent=(Math.abs(vx)*10).toFixed(1)+' m/s';
+  vxEl.className='hud-value'+(Math.abs(vx)>.4?' danger':Math.abs(vx)>.2?' warn':'');
+
+  const fp=ship.fuel;
+  fuelEl.textContent=Math.round(fp)+'%';
+  fuelEl.className='hud-value'+(fp<20?' danger':fp<40?' warn':'');
+}
+
+function updateWindBar(){
+  const fill=document.getElementById('windFill');
+  const pct=Math.abs(wind.val)/(.003)*50;
+  const clamped=Math.min(50,pct);
+  if(wind.val>0){
+    fill.style.bottom='50%';fill.style.top='auto';
+    fill.style.height=clamped+'%';
+    fill.style.background='#ffb347';
+  } else {
+    fill.style.top='50%';fill.style.bottom='auto';
+    fill.style.height=clamped+'%';
+    fill.style.background='#4fc3f7';
+  }
+}
+
+function updateAltBar(groundY){
+  const fill=document.getElementById('altFill');
+  const maxH=H()-CTRL_H-100;
+  const alt=Math.max(0,groundY-ship.y-36);
+  const pct=Math.min(100,alt/maxH*100);
+  fill.style.height=pct+'%';
+  fill.style.background=pct<20?'#ff3b3b':pct<40?'#ffb347':'#39ff6a';
+}
+
+// ===== DRAW =====
+function draw(){
+  cx.clearRect(0,0,W(),H());
+  // space bg
+  cx.fillStyle='#04060e';
+  cx.fillRect(0,0,W(),H());
+  drawStars();
+  drawEarth();
+  drawTerrain();
+  drawPad();
+  drawTargeting();
+  drawParticles();
+  if(!ship.crashed){
+    drawLander(ship.x,ship.y,ship.flameL,ship.flameR,ship.flameMain);
+  }
+}
+
+function loop(){
+  update();
+  draw();
+  animId=requestAnimationFrame(loop);
+}
+
+// ===== RESULT =====
+function showResult(success){
+  const offset=Math.abs(ship.x-pad.x);
+  const speed=Math.abs(ship.vy);
+  let pts=0, rank='', emo='';
+
+  if(success){
+    const distScore=Math.max(0,100-Math.round(offset*2));
+    const speedScore=Math.max(0,100-Math.round(speed*80));
+    const fuelBonus=Math.round(ship.fuel*.5);
+    pts=distScore+speedScore+fuelBonus;
+    score+=pts;
+
+    if(offset<5&&speed<.3){rank='PERFECT LANDING';emo='🏆';}
+    else if(offset<12&&speed<.5){rank='EXCELLENT';emo='🥇';}
+    else if(offset<20){rank='GOOD LANDING';emo='✅';}
+    else{rank='SAFE LANDING';emo='👍';}
+
+    const statsEl=document.getElementById('ovStats');
+    statsEl.style.display='flex';
+    statsEl.innerHTML=`
+      <div class="ov-stat"><div class="ov-stat-label">OFFSET</div><div class="ov-stat-val">${Math.round(offset)}m</div></div>
+      <div class="ov-stat"><div class="ov-stat-label">IMPACT</div><div class="ov-stat-val">${(speed*10).toFixed(1)}</div></div>
+      <div class="ov-stat"><div class="ov-stat-label">FUEL</div><div class="ov-stat-val">${Math.round(ship.fuel)}%</div></div>
+      <div class="ov-stat"><div class="ov-stat-label">SCORE</div><div class="ov-stat-val" style="color:var(--amber)">${pts}</div></div>
+    `;
+    document.getElementById('ov-btn').textContent=
+      stage<STAGES.length-1?'▶ NEXT MISSION':'▶ PLAY AGAIN';
+  } else {
+    rank='MISSION FAILED'; emo='💥';
+    document.getElementById('ovStats').style.display='none';
+    document.getElementById('ov-btn').textContent='▶ RETRY';
+  }
+
+  document.getElementById('ov-icon').textContent=emo;
+  document.getElementById('ov-title').textContent=rank;
+  document.getElementById('ov-sub').textContent=
+    success
+      ? `ミッション完了！ トータルスコア: ${score}`
+      : '着陸に失敗しました。もう一度チャレンジ！';
+
+  document.getElementById('overlay').classList.remove('hidden');
+
+  document.getElementById('ov-btn').onclick=()=>{
+    if(success && stage<STAGES.length-1) stage++;
+    else if(!success){} // retry same stage
+    else { stage=0; score=0; } // all clear, restart
+    startStage();
+  };
+}
+
+// ===== START =====
+function startStage(){
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('stage-label').textContent=
+    `STAGE ${stage+1} — ${STAGES[stage].name}`;
+  initPad();
+  initTerrain(pad.x);
+  initShip();
+  particles=[];
+  wind={val:0,target:0,timer:60};
+  leftHeld=false;rightHeld=false;centerHeld=false;
+  leftPower=0;rightPower=0;centerPower=0;
+  running=true;
+  if(animId)cancelAnimationFrame(animId);
+  loop();
+}
+
+// ===== INPUT =====
+const btnL=document.getElementById('btnLeft');
+const btnR=document.getElementById('btnRight');
+const btnC=document.getElementById('btnCenter');
+
+function setLeft(v){  leftHeld=v;  btnL.classList.toggle('active',v); }
+function setRight(v){ rightHeld=v; btnR.classList.toggle('active',v); }
+function setCenter(v){centerHeld=v;btnC.classList.toggle('active',v); }
+
+btnL.addEventListener('pointerdown', e=>{e.preventDefault();setLeft(true);});
+btnL.addEventListener('pointerup',   e=>{e.preventDefault();setLeft(false);});
+btnL.addEventListener('pointerleave',e=>{setLeft(false);});
+btnR.addEventListener('pointerdown', e=>{e.preventDefault();setRight(true);});
+btnR.addEventListener('pointerup',   e=>{e.preventDefault();setRight(false);});
+btnR.addEventListener('pointerleave',e=>{setRight(false);});
+btnC.addEventListener('pointerdown', e=>{e.preventDefault();setCenter(true);});
+btnC.addEventListener('pointerup',   e=>{e.preventDefault();setCenter(false);});
+btnC.addEventListener('pointerleave',e=>{setCenter(false);});
+
+// keyboard
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft' ||e.key==='a') setLeft(true);
+  if(e.key==='ArrowRight'||e.key==='d') setRight(true);
+  if(e.key==='ArrowUp'   ||e.key==='w'||e.key===' ') setCenter(true);
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft' ||e.key==='a') setLeft(false);
+  if(e.key==='ArrowRight'||e.key==='d') setRight(false);
+  if(e.key==='ArrowUp'   ||e.key==='w'||e.key===' ') setCenter(false);
+});
+
+// ===== INIT =====
+initStars();
+
+document.getElementById('ov-btn').onclick=()=>{
+  stage=0; score=0;
+  startStage();
+};
+</script>
+</body>
+</html>
