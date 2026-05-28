@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AOI GAMES">
+<title>AOI GAMES 🎮</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root {
+  --pink:#ff5599;
+  --yellow:#ffe040;
+  --blue:#55aaff;
+  --green:#55cc77;
+  --purple:#bb77ff;
+  --orange:#ff9944;
+}
+
+body {
+  font-family:'Nunito',sans-serif;
+  min-height:100vh;
+  background:#fff8ff;
+  overflow-x:hidden;
+}
+
+/* ===== ANIMATED BG ===== */
+.bg {
+  position:fixed; inset:0; z-index:0;
+  background:linear-gradient(135deg,#fff0f8 0%,#f0f8ff 50%,#fffff0 100%);
+}
+.bubble {
+  position:fixed;
+  border-radius:50%;
+  opacity:.18;
+  animation:floatBubble linear infinite;
+  pointer-events:none;
+  z-index:0;
+}
+@keyframes floatBubble {
+  0%  {transform:translateY(110vh) scale(1);}
+  100%{transform:translateY(-20vh) scale(1.1);}
+}
+
+/* ===== FLOATING EMOJIS ===== */
+.float-emoji {
+  position:fixed;
+  font-size:1.6rem;
+  animation:floatEmo linear infinite;
+  pointer-events:none;
+  z-index:0;
+  opacity:.55;
+}
+@keyframes floatEmo {
+  0%  {transform:translateY(110vh) rotate(0deg);opacity:0;}
+  10% {opacity:.55;}
+  90% {opacity:.55;}
+  100%{transform:translateY(-15vh) rotate(360deg);opacity:0;}
+}
+
+/* ===== WRAPPER ===== */
+.wrap {
+  position:relative; z-index:1;
+  max-width:480px;
+  margin:0 auto;
+  padding:0 12px 40px;
+}
+
+/* ===== HEADER ===== */
+header {
+  text-align:center;
+  padding:32px 0 12px;
+}
+.logo-emoji {
+  font-size:clamp(2.8rem,10vw,4.5rem);
+  display:block;
+  animation:logoBounce 1.8s ease-in-out infinite;
+  filter:drop-shadow(0 6px 12px rgba(255,85,153,.25));
+}
+@keyframes logoBounce {
+  0%,100%{transform:translateY(0) rotate(-4deg);}
+  50%    {transform:translateY(-14px) rotate(4deg);}
+}
+h1 {
+  font-size:clamp(2rem,8vw,3.2rem);
+  font-weight:900;
+  background:linear-gradient(135deg,#ff5599,#ff9944,#ffe040,#55cc77,#55aaff,#bb77ff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:.08em;
+  line-height:1;
+  margin:.1em 0 .15em;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.08));
+}
+.tagline {
+  font-size:clamp(.85rem,3vw,1.05rem);
+  font-weight:700;
+  color:#aa88cc;
+  letter-spacing:.05em;
+  margin-bottom:4px;
+}
+
+/* ===== DECORATIVE STARS ===== */
+.stars {
+  display:flex; justify-content:center; gap:.4em;
+  font-size:1.2rem;
+  margin:8px 0 20px;
+  animation:starsGlow 2s ease-in-out infinite alternate;
+}
+@keyframes starsGlow{from{opacity:.7;}to{opacity:1;}}
+
+/* ===== SECTION TITLE ===== */
+.section-title {
+  font-size:clamp(.9rem,3vw,1.1rem);
+  font-weight:900;
+  color:#cc88aa;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:14px;
+  padding-left:4px;
+  display:flex;
+  align-items:center;
+  gap:.5em;
+}
+
+/* ===== GAME GRID ===== */
+.game-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-bottom:24px;
+}
+
+/* ===== GAME CARD ===== */
+.game-card {
+  display:block;
+  text-decoration:none;
+  border-radius:24px;
+  overflow:hidden;
+  position:relative;
+  box-shadow:0 6px 0 rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.08);
+  transition:transform .15s, box-shadow .15s;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  animation:cardPop .5s cubic-bezier(.175,.885,.32,1.275) both;
+}
+.game-card:nth-child(1){animation-delay:.05s;}
+.game-card:nth-child(2){animation-delay:.1s;}
+.game-card:nth-child(3){animation-delay:.15s;}
+.game-card:nth-child(4){animation-delay:.2s;}
+@keyframes cardPop{
+  from{opacity:0;transform:scale(.8) translateY(20px);}
+  to  {opacity:1;transform:scale(1) translateY(0);}
+}
+.game-card:active {
+  transform:translateY(4px) scale(.97);
+  box-shadow:0 2px 0 rgba(0,0,0,.1), 0 4px 12px rgba(0,0,0,.08);
+}
+
+.card-bg {
+  width:100%; aspect-ratio:1/1;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:12px 8px 8px;
+  position:relative;
+  overflow:hidden;
+}
+
+/* polka dot pattern on cards */
+.card-bg::before {
+  content:'';
+  position:absolute; inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.25) 2px,transparent 2px);
+  background-size:18px 18px;
+}
+
+.card-emoji {
+  font-size:clamp(2.2rem,8vw,3rem);
+  line-height:1;
+  margin-bottom:6px;
+  position:relative;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.15));
+  animation:cardEmoBob 2s ease-in-out infinite;
+}
+.game-card:nth-child(2) .card-emoji{animation-delay:.3s;}
+.game-card:nth-child(3) .card-emoji{animation-delay:.6s;}
+.game-card:nth-child(4) .card-emoji{animation-delay:.9s;}
+@keyframes cardEmoBob{
+  0%,100%{transform:translateY(0);}
+  50%    {transform:translateY(-5px);}
+}
+
+.card-name {
+  font-size:clamp(.7rem,2.5vw,.85rem);
+  font-weight:900;
+  color:#fff;
+  text-align:center;
+  text-shadow:0 2px 4px rgba(0,0,0,.2);
+  line-height:1.2;
+  position:relative;
+}
+
+.card-footer {
+  padding:10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.card-label {
+  font-size:.72rem;
+  font-weight:900;
+  color:#555;
+}
+.play-btn {
+  font-size:.65rem;
+  font-weight:900;
+  padding:.3em .8em;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 2px 0 rgba(0,0,0,.1);
+  color:#555;
+}
+
+/* card color themes */
+.card--parachute .card-bg { background:linear-gradient(135deg,#55aaff,#3388dd); }
+.card--parachute .card-footer { background:#d4ecff; }
+.card--parachute .play-btn { color:#2277bb; }
+
+.card--breakout .card-bg { background:linear-gradient(135deg,#ff6faa,#ff3377); }
+.card--breakout .card-footer { background:#ffd4e8; }
+.card--breakout .play-btn { color:#cc2266; }
+
+.card--coming1 .card-bg { background:linear-gradient(135deg,#ffe040,#ffaa00); }
+.card--coming1 .card-footer { background:#fff4cc; }
+.card--coming1 .play-btn { color:#aa7700; }
+
+.card--coming2 .card-bg { background:linear-gradient(135deg,#55cc77,#33aa55); }
+.card--coming2 .card-footer { background:#d4f4dd; }
+.card--coming2 .play-btn { color:#227744; }
+
+/* coming soon overlay */
+.coming-badge {
+  position:absolute;
+  top:10px; right:-22px;
+  background:#fff;
+  color:#ffaa00;
+  font-size:.6rem;
+  font-weight:900;
+  padding:.25em 1.8em;
+  transform:rotate(35deg);
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+  letter-spacing:.05em;
+}
+.card--coming1,.card--coming2{opacity:.75;}
+
+/* ===== ADD GAME CARD ===== */
+.add-card {
+  grid-column:1/-1;
+  border-radius:20px;
+  border:3px dashed #ffbbdd;
+  padding:18px;
+  text-align:center;
+  background:rgba(255,200,220,.08);
+}
+.add-card p {
+  font-size:.85rem;
+  font-weight:700;
+  color:#cc88aa;
+}
+.add-card .add-icon {
+  font-size:2rem;
+  display:block;
+  margin-bottom:6px;
+}
+
+/* ===== FOOTER ===== */
+footer {
+  text-align:center;
+  padding:16px 0 8px;
+  font-size:.72rem;
+  font-weight:700;
+  color:#ddaacc;
+  letter-spacing:.08em;
+}
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<!-- floating bubbles -->
+<script>
+// bubbles
+const colors=['#ff5599','#55aaff','#ffe040','#55cc77','#bb77ff','#ff9944'];
+for(let i=0;i<8;i++){
+  const b=document.createElement('div');
+  b.className='bubble';
+  const size=40+Math.random()*80;
+  b.style.cssText=`
+    width:${size}px;height:${size}px;
+    left:${Math.random()*100}vw;
+    background:${colors[i%colors.length]};
+    animation-duration:${10+Math.random()*14}s;
+    animation-delay:${-Math.random()*14}s;
+  `;
+  document.body.appendChild(b);
+}
+// floating emojis
+const emos=['⭐','🌸','🎈','🍭','🎀','✨','🌈','🎉'];
+for(let i=0;i<10;i++){
+  const e=document.createElement('div');
+  e.className='float-emoji';
+  e.textContent=emos[i%emos.length];
+  e.style.cssText=`
+    left:${Math.random()*100}vw;
+    font-size:${1.2+Math.random()*.8}rem;
+    animation-duration:${9+Math.random()*12}s;
+    animation-delay:${-Math.random()*12}s;
+  `;
+  document.body.appendChild(e);
+}
+</script>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <span class="logo-emoji">🎮</span>
+    <h1>AOI GAMES</h1>
+    <p class="tagline">あおいのゲームランド！</p>
+    <div class="stars">⭐🌟✨🌟⭐</div>
+  </header>
+
+  <!-- GAMES -->
+  <div class="section-title">🕹️ ゲームをえらぼう！</div>
+
+  <div class="game-grid">
+
+    <!-- AOIパラシュート -->
+    <a class="game-card card--parachute" href="aoi-parachute/index.html">
+      <div class="card-bg">
+        <div class="card-emoji">🪂</div>
+        <div class="card-name">AOI<br>パラシュート</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-label">ちゃくちゲーム</span>
+        <span class="play-btn">▶ あそぶ</span>
+      </div>
+    </a>
+
+    <!-- ブロック崩し -->
+    <a class="game-card card--breakout" href="breakout-kids/index.html">
+      <div class="card-bg">
+        <div class="card-emoji">🧱</div>
+        <div class="card-name">ブロック<br>くずし</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-label">アクションゲーム</span>
+        <span class="play-btn">▶ あそぶ</span>
+      </div>
+    </a>
+
+    <!-- Coming Soon 1 -->
+    <div class="game-card card--coming1">
+      <div class="card-bg">
+        <div class="coming-badge">もうすぐ！</div>
+        <div class="card-emoji">🚀</div>
+        <div class="card-name">つぎの<br>ゲーム</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-label">じゅんびちゅう…</span>
+        <span class="play-btn">🔒 まってね</span>
+      </div>
+    </div>
+
+    <!-- Coming Soon 2 -->
+    <div class="game-card card--coming2">
+      <div class="card-bg">
+        <div class="coming-badge">もうすぐ！</div>
+        <div class="card-emoji">🌟</div>
+        <div class="card-name">つぎの<br>ゲーム</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-label">じゅんびちゅう…</span>
+        <span class="play-btn">🔒 まってね</span>
+      </div>
+    </div>
+
+    <!-- Add more -->
+    <div class="add-card">
+      <span class="add-icon">➕</span>
+      <p>パパ・ママがどんどんゲームを<br>ふやしてくれるよ！たのしみにしててね🎉</p>
+    </div>
+
+  </div>
+
+  <footer>🎮 AOI GAMES © 2026 🎮</footer>
+
+</div>
+</body>
+</html>
